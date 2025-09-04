@@ -1,0 +1,20 @@
+{
+  "version": "48.0.0",
+  "files": {
+    "d4272c7f69425333ad34023a49da26bf5667ba6c5f0bfa5e37888d9b00cb2a1c": {
+      "displayName": "StepFunStack Template",
+      "source": {
+        "path": "StepFunStack.template.json",
+        "packaging": "file"
+      },
+      "destinations": {
+        "current_account-current_region-5315468c": {
+          "bucketName": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}",
+          "objectKey": "d4272c7f69425333ad34023a49da26bf5667ba6c5f0bfa5e37888d9b00cb2a1c.json",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-file-publishing-role-${AWS::AccountId}-${AWS::Region}"
+        }
+      }
+    }
+  },
+  "dockerImages": {}
+}

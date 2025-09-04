@@ -1,0 +1,859 @@
+{
+ "Resources": {
+  "ErrorTopicA0904A23": {
+   "Type": "AWS::SNS::Topic",
+   "Metadata": {
+    "aws:cdk:path": "StepFunStack/ErrorTopic/Resource"
+   }
+  },
+  "ErrorTopictuemailejemplocom8990AB20": {
+   "Type": "AWS::SNS::Subscription",
+   "Properties": {
+    "Endpoint": "tu-email@ejemplo.com",
+    "Protocol": "email",
+    "TopicArn": {
+     "Ref": "ErrorTopicA0904A23"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "StepFunStack/ErrorTopic/tu-email@ejemplo.com/Resource"
+   }
+  },
+  "ValidarInventarioLambdaServiceRole3FF9B68A": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "StepFunStack/ValidarInventarioLambda/ServiceRole/Resource"
+   }
+  },
+  "ValidarInventarioLambda9F94F936": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "ZipFile": "\n        exports.handler = async (event) => {\n          console.log('Validando inventario para:', JSON.stringify(event));\n          \n          // Extraer datos del evento\n          const { productoId, cantidad } = event;\n          \n          // Simular validación de inventario\n          const inventarioDisponible = Math.floor(Math.random() * 100) + 1;\n          \n          // Simula error A (falta de inventario) para probar reintentos\n          if (event.forceErrorA || cantidad > inventarioDisponible) {\n            const err = new Error('Inventario insuficiente');\n            err.name = 'ErrorA';\n            throw err;\n          }\n\n          if (event.forceErrorB) {\n            console.log('ERROR FORZADO: ErrorB activado');\n            const err = new Error('Pago rechazado - error forzado para pruebas');\n            err.name = 'ErrorB';\n            throw err;\n          }\n          \n          return {\n            productoId,\n            cantidad,\n            inventarioDisponible,\n            precioUnitario: 25.99,\n            total: cantidad * 25.99,\n            status: 'InventarioValidado'\n          };\n        };\n      "
+    },
+    "Handler": "index.handler",
+    "Role": {
+     "Fn::GetAtt": [
+      "ValidarInventarioLambdaServiceRole3FF9B68A",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs18.x"
+   },
+   "DependsOn": [
+    "ValidarInventarioLambdaServiceRole3FF9B68A"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "StepFunStack/ValidarInventarioLambda/Resource"
+   }
+  },
+  "ProcesarPagoLambdaServiceRole4BDC4B72": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "StepFunStack/ProcesarPagoLambda/ServiceRole/Resource"
+   }
+  },
+  "ProcesarPagoLambda98B14981": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "ZipFile": "\n        exports.handler = async (event) => {\n          console.log('Procesando pago para:', JSON.stringify(event));\n          \n          // Recibir datos del paso anterior\n          const { productoId, cantidad, total, precioUnitario } = event;\n          \n          // Simular procesamiento de pago\n          const numeroTransaccion = 'TXN-' + Date.now();\n          const comision = total * 0.03; // 3% de comisión\n          const totalConComision = total + comision;\n          \n          // Simula error B (problema de pago) - no se reintenta\n          if (event.forceErrorB) {\n            console.log('ERROR FORZADO: ErrorB activado');\n            const err = new Error('Pago rechazado - error forzado para pruebas');\n            err.name = 'ErrorB';\n            throw err;\n          }\n          \n          // Verificación normal de límite\n          if (total > 1000) {\n            console.log('ERROR: Total excede límite');\n            const err = new Error('Pago rechazado - límite excedido');\n            err.name = 'ErrorB';\n            throw err;\n          }\n          \n          return {\n            productoId,\n            cantidad,\n            precioUnitario,\n            subtotal: total,\n            comision,\n            totalFinal: totalConComision,\n            numeroTransaccion,\n            metodoPago: 'Tarjeta de Crédito',\n            status: 'PagoProcesado'\n          };\n        };\n      "
+    },
+    "Handler": "index.handler",
+    "Role": {
+     "Fn::GetAtt": [
+      "ProcesarPagoLambdaServiceRole4BDC4B72",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs18.x"
+   },
+   "DependsOn": [
+    "ProcesarPagoLambdaServiceRole4BDC4B72"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "StepFunStack/ProcesarPagoLambda/Resource"
+   }
+  },
+  "EnviarConfirmacionLambdaServiceRole6FD7E86E": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "StepFunStack/EnviarConfirmacionLambda/ServiceRole/Resource"
+   }
+  },
+  "EnviarConfirmacionLambda1BB92ED9": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "ZipFile": "\n        exports.handler = async (event) => {\n          console.log('Enviando confirmación para:', JSON.stringify(event));\n          \n          // Recibir datos del paso anterior\n          const { productoId, cantidad, totalFinal, numeroTransaccion } = event;\n          \n          // Simular envío de confirmación\n          const numeroOrden = 'ORD-' + Date.now();\n          const fechaEntrega = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000); // 3 días\n          \n          return {\n            numeroOrden,\n            numeroTransaccion,\n            productoId,\n            cantidad,\n            totalFinal,\n            fechaEntrega: fechaEntrega.toISOString(),\n            estadoOrden: 'Confirmada',\n            status: 'ConfirmacionEnviada',\n            mensaje: 'Su compra ha sido procesada exitosamente'\n          };\n        };\n      "
+    },
+    "Handler": "index.handler",
+    "Role": {
+     "Fn::GetAtt": [
+      "EnviarConfirmacionLambdaServiceRole6FD7E86E",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs18.x"
+   },
+   "DependsOn": [
+    "EnviarConfirmacionLambdaServiceRole6FD7E86E"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "StepFunStack/EnviarConfirmacionLambda/Resource"
+   }
+  },
+  "ManejoErroresLambdaServiceRoleD8C192CD": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "StepFunStack/ManejoErroresLambda/ServiceRole/Resource"
+   }
+  },
+  "ManejoErroresLambdaServiceRoleDefaultPolicy6F2C6B48": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sns:Publish",
+       "Effect": "Allow",
+       "Resource": {
+        "Ref": "ErrorTopicA0904A23"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "ManejoErroresLambdaServiceRoleDefaultPolicy6F2C6B48",
+    "Roles": [
+     {
+      "Ref": "ManejoErroresLambdaServiceRoleD8C192CD"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "StepFunStack/ManejoErroresLambda/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "ManejoErroresLambdaF2983D3E": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "ZipFile": "\n        const AWS = require('aws-sdk');\n        const sns = new AWS.SNS();\n        exports.handler = async (event) => {\n          console.log('Manejando error:', JSON.stringify(event, null, 2));\n          \n          const errorInfo = {\n            timestamp: new Date().toISOString(),\n            originalInput: event,\n            errorDetails: event.error || 'Error no especificado',\n            stepFunction: 'CompraProductoStateMachine'\n          };\n          \n          await sns.publish({\n            TopicArn: process.env.TOPIC_ARN,\n            Message: JSON.stringify(errorInfo, null, 2),\n            Subject: 'Error en Step Function - Proceso de Compra',\n          }).promise();\n          \n          return { \n            status: 'Error Notificado',\n            errorHandled: true,\n            timestamp: errorInfo.timestamp\n          };\n        };\n      "
+    },
+    "Environment": {
+     "Variables": {
+      "TOPIC_ARN": {
+       "Ref": "ErrorTopicA0904A23"
+      }
+     }
+    },
+    "Handler": "index.handler",
+    "Role": {
+     "Fn::GetAtt": [
+      "ManejoErroresLambdaServiceRoleD8C192CD",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs18.x"
+   },
+   "DependsOn": [
+    "ManejoErroresLambdaServiceRoleDefaultPolicy6F2C6B48",
+    "ManejoErroresLambdaServiceRoleD8C192CD"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "StepFunStack/ManejoErroresLambda/Resource"
+   }
+  },
+  "StepFunctionLogGroup5D8A5468": {
+   "Type": "AWS::Logs::LogGroup",
+   "Properties": {
+    "RetentionInDays": 731
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "StepFunStack/StepFunctionLogGroup/Resource"
+   }
+  },
+  "CompraProductoStateMachineRole99286686": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "states.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "StepFunStack/CompraProductoStateMachine/Role/Resource"
+   }
+  },
+  "CompraProductoStateMachineRoleDefaultPolicy29224EAD": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "lambda:InvokeFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "ValidarInventarioLambda9F94F936",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "ValidarInventarioLambda9F94F936",
+             "Arn"
+            ]
+           },
+           ":*"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "Action": "lambda:InvokeFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "ProcesarPagoLambda98B14981",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "ProcesarPagoLambda98B14981",
+             "Arn"
+            ]
+           },
+           ":*"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "Action": "lambda:InvokeFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "EnviarConfirmacionLambda1BB92ED9",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "EnviarConfirmacionLambda1BB92ED9",
+             "Arn"
+            ]
+           },
+           ":*"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "Action": "lambda:InvokeFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "ManejoErroresLambdaF2983D3E",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "ManejoErroresLambdaF2983D3E",
+             "Arn"
+            ]
+           },
+           ":*"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "Action": [
+        "logs:CreateLogDelivery",
+        "logs:GetLogDelivery",
+        "logs:UpdateLogDelivery",
+        "logs:DeleteLogDelivery",
+        "logs:ListLogDeliveries",
+        "logs:PutResourcePolicy",
+        "logs:DescribeResourcePolicies",
+        "logs:DescribeLogGroups"
+       ],
+       "Effect": "Allow",
+       "Resource": "*"
+      },
+      {
+       "Action": [
+        "xray:PutTraceSegments",
+        "xray:PutTelemetryRecords",
+        "xray:GetSamplingRules",
+        "xray:GetSamplingTargets"
+       ],
+       "Effect": "Allow",
+       "Resource": "*"
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "CompraProductoStateMachineRoleDefaultPolicy29224EAD",
+    "Roles": [
+     {
+      "Ref": "CompraProductoStateMachineRole99286686"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "StepFunStack/CompraProductoStateMachine/Role/DefaultPolicy/Resource"
+   }
+  },
+  "CompraProductoStateMachine7B3130B0": {
+   "Type": "AWS::StepFunctions::StateMachine",
+   "Properties": {
+    "DefinitionString": {
+     "Fn::Join": [
+      "",
+      [
+       "{\"StartAt\":\"Validar Inventario\",\"States\":{\"Validar Inventario\":{\"Next\":\"Procesar Pago\",\"Retry\":[{\"ErrorEquals\":[\"Lambda.ClientExecutionTimeoutException\",\"Lambda.ServiceException\",\"Lambda.AWSLambdaException\",\"Lambda.SdkClientException\"],\"IntervalSeconds\":2,\"MaxAttempts\":6,\"BackoffRate\":2},{\"ErrorEquals\":[\"ErrorA\"],\"IntervalSeconds\":2,\"MaxAttempts\":3,\"BackoffRate\":2}],\"Catch\":[{\"ErrorEquals\":[\"ErrorA\"],\"ResultPath\":\"$.error\",\"Next\":\"Inventario Falló\"}],\"Type\":\"Task\",\"OutputPath\":\"$.Payload\",\"Resource\":\"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":states:::lambda:invoke\",\"Parameters\":{\"FunctionName\":\"",
+       {
+        "Fn::GetAtt": [
+         "ValidarInventarioLambda9F94F936",
+         "Arn"
+        ]
+       },
+       "\",\"Payload.$\":\"$\"}},\"Procesar Pago\":{\"Next\":\"Enviar Confirmación\",\"Retry\":[{\"ErrorEquals\":[\"Lambda.ClientExecutionTimeoutException\",\"Lambda.ServiceException\",\"Lambda.AWSLambdaException\",\"Lambda.SdkClientException\"],\"IntervalSeconds\":2,\"MaxAttempts\":6,\"BackoffRate\":2}],\"Catch\":[{\"ErrorEquals\":[\"States.ALL\"],\"ResultPath\":\"$.error\",\"Next\":\"Manejo de Error Pago\"}],\"Type\":\"Task\",\"OutputPath\":\"$.Payload\",\"Resource\":\"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":states:::lambda:invoke\",\"Parameters\":{\"FunctionName\":\"",
+       {
+        "Fn::GetAtt": [
+         "ProcesarPagoLambda98B14981",
+         "Arn"
+        ]
+       },
+       "\",\"Payload.$\":\"$\"}},\"Enviar Confirmación\":{\"End\":true,\"Retry\":[{\"ErrorEquals\":[\"Lambda.ClientExecutionTimeoutException\",\"Lambda.ServiceException\",\"Lambda.AWSLambdaException\",\"Lambda.SdkClientException\"],\"IntervalSeconds\":2,\"MaxAttempts\":6,\"BackoffRate\":2}],\"Type\":\"Task\",\"OutputPath\":\"$.Payload\",\"Resource\":\"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":states:::lambda:invoke\",\"Parameters\":{\"FunctionName\":\"",
+       {
+        "Fn::GetAtt": [
+         "EnviarConfirmacionLambda1BB92ED9",
+         "Arn"
+        ]
+       },
+       "\",\"Payload.$\":\"$\"}},\"Manejo de Error Pago\":{\"Next\":\"Error Manejado\",\"Retry\":[{\"ErrorEquals\":[\"Lambda.ClientExecutionTimeoutException\",\"Lambda.ServiceException\",\"Lambda.AWSLambdaException\",\"Lambda.SdkClientException\"],\"IntervalSeconds\":2,\"MaxAttempts\":6,\"BackoffRate\":2}],\"Type\":\"Task\",\"OutputPath\":\"$.Payload\",\"Resource\":\"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":states:::lambda:invoke\",\"Parameters\":{\"FunctionName\":\"",
+       {
+        "Fn::GetAtt": [
+         "ManejoErroresLambdaF2983D3E",
+         "Arn"
+        ]
+       },
+       "\",\"Payload.$\":\"$\"}},\"Error Manejado\":{\"Type\":\"Succeed\",\"Comment\":\"Error de pago manejado y notificado via SNS\"},\"Inventario Falló\":{\"Type\":\"Fail\",\"Comment\":\"Error después de agotar reintentos\",\"Cause\":\"Inventario insuficiente después de múltiples intentos\"}},\"TimeoutSeconds\":300}"
+      ]
+     ]
+    },
+    "LoggingConfiguration": {
+     "Destinations": [
+      {
+       "CloudWatchLogsLogGroup": {
+        "LogGroupArn": {
+         "Fn::GetAtt": [
+          "StepFunctionLogGroup5D8A5468",
+          "Arn"
+         ]
+        }
+       }
+      }
+     ],
+     "Level": "ALL"
+    },
+    "RoleArn": {
+     "Fn::GetAtt": [
+      "CompraProductoStateMachineRole99286686",
+      "Arn"
+     ]
+    },
+    "TracingConfiguration": {
+     "Enabled": true
+    }
+   },
+   "DependsOn": [
+    "CompraProductoStateMachineRoleDefaultPolicy29224EAD",
+    "CompraProductoStateMachineRole99286686"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "StepFunStack/CompraProductoStateMachine/Resource"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/1WN0WrDMAxFv6XvjpbmFwYdgw5GsvfiKGqnxrFCZLcU438vSRbonu65V1dSBdW+gnJn71pg1xeOW0hNsNgbe9dTUq+QfmRkNO9nv0ITW8WJx8Di5/TVZ+Ps0HYW0iF63BobZ8N2gFSLozle9Fsc42O2K2Wjgcbz34aegtVe4bhc/fQ36el/AdLBsjNNRCTqTBNsoC+Lv+yXH68+GycXhXSUy8ckcZznG+dsalKJE1I2XjqCq77dqgr2JZS7qzIXU/SBB4J61SeywzXmOwEAAA=="
+   },
+   "Metadata": {
+    "aws:cdk:path": "StepFunStack/CDKMetadata/Default"
+   },
+   "Condition": "CDKMetadataAvailable"
+  }
+ },
+ "Conditions": {
+  "CDKMetadataAvailable": {
+   "Fn::Or": [
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "af-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-3"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-4"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-northwest-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-2"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "il-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "sa-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-west-1"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Equals": [
+      {
+       "Ref": "AWS::Region"
+      },
+      "us-west-2"
+     ]
+    }
+   ]
+  }
+ },
+ "Parameters": {
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}
