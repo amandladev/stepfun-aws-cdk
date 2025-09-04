@@ -184,7 +184,6 @@ export class StepFunStack extends cdk.Stack {
       backoffRate: 2.0,
     });
     
-    // Luego configurar catch para cuando se agoten los reintentos
     validarInventarioTask.addCatch(new sfn.Fail(this, 'Inventario Falló', {
       comment: 'Error después de agotar reintentos',
       cause: 'Inventario insuficiente después de múltiples intentos'
